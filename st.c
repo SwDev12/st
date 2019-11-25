@@ -59,6 +59,22 @@ static int left_greater(unsigned a, unsigned b)
     } else if (diff_a < diff_b) {
         return 0;
     } else {
+//    if (spans[a].start + spans[a].length > cabins) {
+        if (spans[a].start == 0) {
+            place_a = 1;
+        } else if (spans[a].start + spans[a].length > cabins) {
+            place_a = cabins;
+        }
+ //   }
+//    if (spans[b].start + spans[b].length > cabins) {
+        if (spans[b].start == 0) {
+            place_b = 1;
+        } else if (spans[b].start + spans[b].length > cabins) {
+            place_b = cabins;
+        }
+//    }
+
+
         return place_a < place_b;
     }
 }
