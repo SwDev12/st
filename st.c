@@ -44,11 +44,6 @@ static int diff_a, diff_b, place_a, place_b;
 
 static int left_greater(unsigned a, unsigned b)
 {
-/*    place_a = spans[a].start + spans[a].length / 2 + spans[a].length % 2;
-    place_b = spans[b].start + spans[b].length / 2 + spans[b].length % 2;
-    diff_a = place_a - spans[a].start - 1;
-    diff_b = place_b - spans[b].start - 1;
-*/
     diff_a = spans[a].length / 2 + spans[a].length % 2 - 1;
     diff_b = spans[b].length / 2 + spans[b].length % 2 - 1;
     place_a = diff_a + 1 + spans[a].start;
@@ -59,21 +54,16 @@ static int left_greater(unsigned a, unsigned b)
     } else if (diff_a < diff_b) {
         return 0;
     } else {
-//    if (spans[a].start + spans[a].length > cabins) {
         if (spans[a].start == 0) {
             place_a = 1;
         } else if (spans[a].start + spans[a].length > cabins) {
             place_a = cabins;
         }
- //   }
-//    if (spans[b].start + spans[b].length > cabins) {
         if (spans[b].start == 0) {
             place_b = 1;
         } else if (spans[b].start + spans[b].length > cabins) {
             place_b = cabins;
         }
-//    }
-
 
         return place_a < place_b;
     }
