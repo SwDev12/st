@@ -8,6 +8,8 @@
 
 #define MAX_ID 1000000
 #define MAX_CABIN 20001
+#define IN 1
+#define OUT 2
 #define SPAN_CNT 25001
 #define NOT_POSSIBLE_LENGTH 100000
 #define NOT_EXISTING_ID 1000000
@@ -40,33 +42,42 @@ unsigned int l, r, parent;
     spans[b] = tmp;      \
 } while(0)
 
-static int diff_a, diff_b, place_a, place_b;
+static unsigned st_a = 0, st_b = 0;
+static unsigned len_a = 0, len_b = 0, len_t;
 
 static int left_greater(unsigned a, unsigned b)
 {
-    diff_a = spans[a].length / 2 + spans[a].length % 2 - 1;
-    diff_b = spans[b].length / 2 + spans[b].length % 2 - 1;
-    place_a = diff_a + 1 + spans[a].start;
-    place_b = diff_b + 1 + spans[b].start;
+    st_a = spans[a].start;
+    len_a = spans[a].length;
+    st_b = spans[b].start;
+    len_b = spans[b].length;
 
-    if (diff_a > diff_b) {
-        return 1;
-    } else if (diff_a < diff_b) {
-        return 0;
+/*  //looks like bad decision.
+    if (st_a == 0 || (st_a + len_a > cabins)) {
+        len_a = len_a / 2 - 1;
     } else {
-        if (spans[a].start == 0) {
-            place_a = 1;
-        } else if (spans[a].start + spans[a].length > cabins) {
-            place_a = cabins;
-        }
-        if (spans[b].start == 0) {
-            place_b = 1;
-        } else if (spans[b].start + spans[b].length > cabins) {
-            place_b = cabins;
-        }
-
-        return place_a < place_b;
+        len_a = len_a / 2 + len_a % 2;
     }
+    if (st_b == 0 || (st_b + len_b > cabins)) {
+        len_b = len_b / 2 - 1;
+    } else {
+        len_b = len_b / 2 + len_b % 2;
+    }*/
+    //Maybe it is better.
+    len_a = len_a / 2 + len_a % 2;
+    len_b = len_b / 2 + len_b % 2;
+
+    if (len_a > len_b) {
+        return 1;
+    } else if (len_b > len_a) {
+        return 0;
+    } else if (st_a < st_b) {
+        return 1;
+    } else {
+        return 0;
+    }
+
+
 }
 
 void max_heapify(unsigned int i)
@@ -97,11 +108,10 @@ struct span extract_max(void)
     }*/
     if (heap_size == 1) {
         heap_size--;
-//        printf("extract: item.start = %u, item.length = %u, heap_size = %u\n", spans[0].start, spans[0].length, heap_size);
         return spans[0];
     }
+
     root = spans[0];
- //   printf("extract: item.start = %u, item.length = %u, heap_size = %u\n", spans[0].start, spans[0].length, heap_size);
     spans[0] = spans[heap_size - 1];
     heap_size--;
     max_heapify(0);
@@ -132,15 +142,10 @@ void increase_item(unsigned int i, struct span span)
 void delete_item(unsigned int i)
 {
     struct span max;
-//    struct span extr;
-//    unsigned length = spans[i].length;
     max.length = NOT_POSSIBLE_LENGTH;
 
-//    printf("i = %u\n", i);
     increase_item(i, max);
     extract_max();
-//    extr = extract_max();
-//    printf("i = %u, extr.start = %u, extr.length = %u\n", i, extr.start, length);
 }
 
 void insert_item(struct span item, unsigned num)
@@ -162,15 +167,6 @@ void insert_item(struct span item, unsigned num)
     }
 }
 
-__attribute__((unused)) static void print_heap(void)
-{
-    struct span span;
-    for (unsigned int i = 0; i < heap_size; i++) {
-        span = spans[i];
-        printf("heap: span.start = %u, span.length = %u\n", span.start, span.length);
-    }
-}
-
 static void solve(void)
 {
     unsigned it1 = 0;
@@ -180,65 +176,66 @@ static void solve(void)
 
     heap_size = 0;
     span.start = 0;
-    span.length = cabins;
+    span.length = cabins * 2;
     insert_item(span, 0);
 
     for (register unsigned int i = 1; i <= cases; i++) {
         scanf("%u %u", &inout, &id);
         //printf("%u %u\n", inout, id);
-        if (inout == 1) {
+        if (inout == IN) {
             //Perform in
             //first
             span = extract_max();
-            //printf("heap_size = %d, span.start = %d, span.length = %d\n", heap_size, span.start, span.length);
-            if (heap_size == 0 && span.start == 0) { //cabins empty going to first
+            //printf("inout = %u, id = %u, heap_size = %d, span.start = %d, span.length = %d\n", inout, id, heap_size, span.start, span.length);
+            if (span.start == 0 && span.start + span.length > cabins) { //going to first
+                // 2 conditions 1 and mre than 2
                 span.start = 1;
-                span.length = (span.length - 1) * 2 - 1;
+                if (heap_size == 0) {
+                    span.length = span.length - 2;
+                } else {
+                    span.length = span.length / 2 - 1;
+                }
                 insert_item(span, i);
                 id_to_cab[id] = 1;
                 new_span.start = 0;
                 new_span.length = 0;
                 insert_item(new_span, i);
                 result += 1;
-                //printf("result1 = %d\n", result);
-            } else if (heap_size == 1 && span.start == 1) { //going to the last
-                span.length = cabins - 2;
+//                printf("result1 = %d\n", result);
+            } else if (span.start > 0 && span.start + span.length > cabins) { //going to the last
+                span.length = span.length / 2 - 1;
                 insert_item(span, i);
-                new_span.start = cabins;
-                new_span.length = 0;
-                insert_item(new_span, i);
+                span.length = 0;
+                span.start = cabins;
+                insert_item(span, i);
                 id_to_cab[id] = cabins;
                 result += cabins;
                 //printf("result2 = %d\n", result);
-            } else if (span.start == 0) {
-                new_span.start = 1;
-                new_span.length = span.length / 2;
-                result += 1;
-                insert_item(new_span, i);
-                id_to_cab[id] = 1;
-                span.length = 0;
-                insert_item(span, i);
-                //printf("result3 = %d\n", result);
-            } else if (span.start + span.length > cabins) {
-                new_span.start = cabins;
-                new_span.length = 0;
-                id_to_cab[id] = cabins;
-                insert_item(new_span, i);
-                result += cabins;
-                span.length = span.length / 2;
-                insert_item(span, i);
-                //printf("result4 = %d\n", result);
             } else {
-                new_span.start = span.start + span.length / 2 + span.length % 2;
-                new_span.length = span.length / 2;
-                insert_item(new_span, i);
-                id_to_cab[id] = new_span.start;
-                result += new_span.start;
-                span.length = new_span.start - span.start - 1;
-                insert_item(span, i);
-                //printf("result5 = %d\n", result);
+                if (span.start == 0) {
+                    new_span.start = 1;
+                    new_span.length = span.length / 2 - 1;
+                    // try next
+                    result += 1;
+                    id_to_cab[id] = 1;
+                    insert_item(new_span, i);
+                    span.length = 0;
+                    insert_item(span, i);
+//                    printf("result3 = %u\n", result);
+                } else {
+                    len_t = span.length / 2 + span.length % 2;
+                    new_span.start = span.start + len_t;
+                    new_span.length = span.length - len_t;
+                    id_to_cab[id] = new_span.start;
+                    result += new_span.start;
+                    insert_item(new_span, i);
+                    //try based on len_t
+                    span.length = span.length - new_span.length - 1;
+                    insert_item(span, i);
+//                    printf("result4 = %u\n", result);
+                }
             }
-        } else if (inout == 2) {
+        } else if (inout == OUT) {
             //search deleting interval
             del_start = id_to_cab[id];
             for (register unsigned int i = 0; i < heap_size; i++) {
@@ -250,45 +247,39 @@ static void solve(void)
             del_start = spans[it1].start;
             del_length = spans[it1].length;
             delete_item(it1);
-            printf("del_start = %u, del_length = %u\n", del_start, del_length);
-            //print_heap();
             //search previous interval
             for (register unsigned int i = 0; i < heap_size; i++) {
-                if (spans[i].start == 0 && (spans[i].start + spans[i].length / 2 + spans[i].length % 2) == del_start) {
-                    it1 = i;
-                    printf("Found1!\n");
-                    break;
-                }
                 if (spans[i].start + spans[i].length + 1 == del_start) {
                     it1 = i;
-                    printf("Found2!\n");
                     break;
                 }
             }
             span = spans[it1];
             delete_item(it1);
-            printf("span.start = %u\n", span.start);
-            if (span.start == 0) {
-                span.length = (span.length / 2 + span.length % 2 + del_length + 1) * 2 - 1;
-            } else if (span.start == 1) {
-                span.length = (span.length / 2 + span.length % 2 + del_length + 1) * 2 - 1;
-            }else if (del_start + del_length >= cabins) {
-                //printf("1\n");
-                span.length = (cabins - span.start) * 2 - 1;
-                //printf("Fuuuuck! del_start = %u, del_length = %u\n", del_start, del_length);
-            //} else if (span.start == 0) {
-                //printf("2\n");
-                //span.length = (span.length / 2 + span.length % 2 + del_length + 1) * 2 - 1;
-            } else {
-                //printf("3\n");
-                span.length = span.length + del_length + 1;
+            if (del_start == 1 && del_start + del_length > cabins) {
+                span.start = 0;
+                span.length = cabins * 2;
+            } else if (del_start == 1 && del_start + del_length <= cabins) {
+                span.start = 0;
+                span.length = (del_length + 1) * 2;
+            } else if (del_start == cabins && span.start == 0) {
+                //span.start = 0;
+                span.length = cabins * 2;
+            } else if (del_start == cabins && span.start != 0) {
+                span.length = (span.length + 1) * 2;
+            } else if (span.start != 0 && del_start + del_length > cabins) {
+                span.length = del_length + 2;
+            } else if (span.start != 0 && del_start + del_length < cabins) {
+                span.length = del_length + span.length + 1;
             }
             insert_item(span, i);
-            //print_heap();
         }
-            //optimize!!
     }
-    print_heap();
+    while (heap_size != 0) {
+        span = extract_max();
+        printf("span.start = %u, span.length = %u\n", span.start, span.length);
+    }
+
 }
 
 int main(void)
